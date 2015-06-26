@@ -19,7 +19,7 @@
 #include <aprs.h>
 //
 //
-int dTime = 10 * 60 * 1000; //Minutes *  seconds * milliseconds
+int dTime = 0.5 * 60 * 1000; //Minutes *  seconds * milliseconds
 // for the display
 #include "SPI.h"
 #include "ILI9341_t3.h"
@@ -181,7 +181,7 @@ void display()
   tft.setCursor(0, 0);
   gpsYear  = gps.year;
   gpsMonth = gps.month;
-  gpsDay   = gps.month;
+  gpsDay   = gps.day;
   gpsHour  = gps.hour;
   gpsHour += TimeZone; // Time zone correction
   // DST fix
