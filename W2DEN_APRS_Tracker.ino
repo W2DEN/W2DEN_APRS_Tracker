@@ -1,26 +1,45 @@
-// Example program for the APRS code in this repository
-
 /*
 * This is W2DEN's attempt at a Teensy3.1 APRS Tracker.
 * The bases for this sketch comes from Richard Nash (KC3ARY). Without his code I'd still be searching
 * Also thanks to:
-*
-* The APRS libraries come from the Trackduino project with modes by many before it got here.
- *
+*    
+    9W2SVT: ASPRS Arduino with Display ( http://9w2svt.blogspot.com/ ) 
+    M1GEO: APRS Blog ( http://www.george-smart.co.uk/wiki/APRS ) 
+    KI4MCW: Balloonery ( https://sites.google.com/site/ki4mcw/ ) 
+    BeRTOS Project ... 
+    Jinseok Jeon (JeonLab.wordpress.com): UTC calculator
+    The APRS libraries come from the Trackduino project with modes by many before it got here.
  *
  */
-#define thisver "1.0" ////////////////////////////////// VERSION
+#define thisver "1.01" ////////////////////////////////// VERSION
 #include <WProgram.h>
 // Note: this example uses my GPS library for the Adafruit Ultimate GPS
 // Code located here: https://github.com/rvnash/ultimate_gps_teensy3
 #include <GPS.h>
 #include <aprs.h>
-
+//
+//
+int dTime = 10 * 60 * 1000; //Minutes *  seconds * milliseconds
 // for the display
 #include "SPI.h"
 #include "ILI9341_t3.h"
 ILI9341_t3 tft = ILI9341_t3(10, 9, 8, 11, 14, 12);
 static const int line=25; //# of lines on screen @ font size 3
+
+//This is for the UTC date correction//////////////////////////////////////////////
+int DSTbegin[] = { //DST 2013 - 2025 in Canada and US
+  310, 309, 308, 313, 312, 311, 310, 308, 314, 313, 312, 310, 309};
+int DSTend[] = { //DST 2013 - 2025 in Canada and US
+  1103, 1102, 1101, 1106, 1105, 1104, 1103, 1101, 1107, 1106, 1105, 1103, 1102};
+int DaysAMonth[] = { //number of days a month
+  31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+const int TimeZone = -5;
+int gpsYear;
+int gpsMonth;
+int gpsDay = 0;
+int gpsHour;
+#define knotToMPH 1.15078 // GPS speed is in knots... this is the conversion
+////////////////////////////////////////////////////////////////////////////////
 
 // APRS Information
 #define PTT_PIN 13 // Push to talk pin
@@ -35,7 +54,7 @@ static const int line=25; //# of lines on screen @ font size 3
 #define SYMBOL_TABLE '/'
 // Primary Table Symbols: /O=balloon, /-=House, /v=Blue Van, />=Red Car
 #define SYMBOL_CHAR '-'
-int dTime = 1 * 60 * 1000; //Minutes *  seconds * milliseconds
+
 struct PathAddress addresses[] = {
   {(char *)D_CALLSIGN, D_CALLSIGN_ID},  // Destination callsign
   {(char *)S_CALLSIGN, S_CALLSIGN_ID},  // Source callsign
@@ -50,7 +69,7 @@ GPS gps(&gpsSerial, true);
 // setup() method runs once, when the sketch starts
 void setup()
 {
-  dTime = dTime + 1;
+  //dTime = dTime + 1;
   tft.begin();
   tft.fillScreen(ILI9341_BLACK);
   tft.setRotation(0);
@@ -70,11 +89,11 @@ void setup()
     delay(1000);
   }
   gps.parseSentence();
-  // Serial.print("APRS Initial");
-  gps.dataRead();
-  broadcastLocation(gps, "Teensy APRS Tracker Testing Nokomis, Fl" );
-  display();
+  //Serial.print("APRS Initial");
   //Serial.printf("Location: %f, %f altitude %f\n\r", gps.latitude, gps.longitude, gps.altitude);
+ // gps.dataRead();
+  broadcastLocation(gps, "Teensy APRS Tracker Testing Nokomis, Fl" );
+  display(); 
 }
 
 // Function to broadcast your location
@@ -125,6 +144,8 @@ void broadcastLocation(GPS &gps, const char *comment)
             , SYMBOL_TABLE
             , SYMBOL_CHAR
             , comment);
+  //Serial.print("APRS sent");
+  //Serial.printf("Location: %f, %f altitude %f\n\r", gps.latitude, gps.longitude, gps.altitude);
 }
 
 uint32_t timeOfAPRS = 0;
@@ -158,11 +179,48 @@ void display()
   tft.setTextSize(3);
   tft.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
   tft.setCursor(0, 0);
+  gpsYear  = gps.year;
+  gpsMonth = gps.month;
+  gpsDay   = gps.month;
+  gpsHour  = gps.hour;
+  gpsHour += TimeZone; // Time zone correction
+  // DST fix
+  if (gpsMonth*100+gpsDay >= DSTbegin[gpsYear-13] && 
+        gpsMonth*100+gpsDay < DSTend[gpsYear-13]) gpsHour += 1;
+  if (gpsHour < 0)
+      {
+        gpsHour += 24;
+        gpsDay -= 1;
+        if (gpsDay < 1)
+        {
+          if (gpsMonth == 1)
+          {
+            gpsMonth = 12;
+            gpsYear -= 1;
+          }
+          else
+          {
+            gpsMonth -= 1;
+          }
+          gpsDay = DaysAMonth[gpsMonth-1];
+        } 
+      }
+   if (gpsHour >= 24)
+      {
+        gpsHour -= 24;
+        gpsDay += 1;
+        if (gpsDay > DaysAMonth[gpsMonth-1])
+        {
+          gpsDay = 1;
+          gpsMonth += 1;
+          if (gpsMonth > 12) gpsYear += 1;
+        }
+      }
   char sz[32];
-  sprintf(sz, "%02d/%02d/%02d ", gps.month, gps.day, gps.year);
+  sprintf(sz, "%02d/%02d/%02d ", gpsMonth, gpsDay, gpsYear);
   tft.println(sz);
   //char sz[32];
-  sprintf(sz, "%02d:%02d ", gps.hour, gps.minute);
+  sprintf(sz, "%02d:%02d ", gpsHour, gps.minute);
   tft.println(sz);
   
   tft.setTextSize(3);
@@ -192,15 +250,13 @@ void display()
     {
        tft.println(" E"); 
     }
-    tft.setTextSize(3);
- 
-  
+    tft.setTextSize(3);  
   tft.setCursor(0, line*7);
   tft.setTextColor(ILI9341_MAGENTA,ILI9341_BLACK);
   tft.setTextSize(4);
   tft.print("          ");
   tft.setCursor(0, line*7);
-  printStr(String(gps.speed ),5,false); 
+  printStr(String(gps.speed*knotToMPH ),5,false); 
   tft.setTextSize(3);
   printStr(" mph",4,true);
   tft.setCursor(0, line*9);
