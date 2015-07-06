@@ -38,6 +38,7 @@ int gpsYear;
 int gpsMonth;
 int gpsDay = 0;
 int gpsHour;
+int gpsSpeed;
 #define knotToMPH 1.15078 // GPS speed is in knots... this is the conversion
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -50,10 +51,10 @@ int gpsHour;
 // Destination callsign: APRS (with SSID=0) is usually okay.
 #define D_CALLSIGN      "APRS"
 #define D_CALLSIGN_ID   0
-// Symbol Table: '/' is primary table '\' is secondary table
+// Symbol Table: '/' is primary table '\\' is secondary table. The Secondary tabe symbol is \ but must be escaped with the first \
 #define SYMBOL_TABLE '/'
 // Primary Table Symbols: /O=balloon, /-=House, /v=Blue Van, />=Red Car
-#define SYMBOL_CHAR '-'
+#define SYMBOL_CHAR '>'
 
 struct PathAddress addresses[] = {
   {(char *)D_CALLSIGN, D_CALLSIGN_ID},  // Destination callsign
@@ -93,6 +94,7 @@ void setup()
   //Serial.printf("Location: %f, %f altitude %f\n\r", gps.latitude, gps.longitude, gps.altitude);
  // gps.dataRead();
   broadcastLocation(gps, "Teensy APRS Tracker Testing Nokomis, Fl" );
+  gpsSpeed=gps.speed;
   display(); 
 }
 
@@ -116,9 +118,9 @@ void broadcastLocation(GPS &gps, const char *comment)
     addresses[3].callsign = "WIDE2";
     addresses[3].ssid = 2;
   }
-
+/*
   // For debugging print out the path
-  /*Serial.print("APRS(");
+  Serial.print("APRS(");
   Serial.print(nAddresses);
   Serial.print("): ");
   for (int i=0; i < nAddresses; i++) {
@@ -132,7 +134,7 @@ void broadcastLocation(GPS &gps, const char *comment)
   Serial.print(SYMBOL_TABLE);
   Serial.print(SYMBOL_CHAR);
   Serial.println();
-  */
+*/
 
   // Send the packet
   aprs_send(addresses, nAddresses
@@ -160,9 +162,16 @@ void loop()
   if (gps.newValuesSinceDataRead()) {
     gotGPS = true; // @TODO: Should really check to see if the location data is still valid
     gps.dataRead();
-    //Serial.printf("Location: %f, %f altitude %f\n\r", gps.latitude, gps.longitude, gps.altitude);
+    //Serial.printf("Location: %f, %f Knots: %f\n\r", gps.latitude, gps.longitude, gps.speed);
+    //Serial.printf("dTime %i timeOf %i millis %i\n\r",dTime,timeOfAPRS,millis());
+    tft.setTextSize(2);
+    tft.setTextColor(ILI9341_YELLOW, ILI9341_BLACK);
+    tft.setCursor(190, 0);
+    tft.print("    ");
+    tft.setCursor(190, 0);
+    tft.print((dTime-(millis()-timeOfAPRS))/1000 );
   }
-
+  
 
   if (gotGPS && timeOfAPRS + dTime < millis()) {
     broadcastLocation(gps, "Teensy APRS Tracker Testing Nokomis, Fl" );
@@ -172,10 +181,10 @@ void loop()
 }
 void display()
 {
-  tft.setTextSize(2);
-  tft.setTextColor(ILI9341_YELLOW, ILI9341_BLACK);
-  tft.setCursor(190, 0);
-  tft.print(dTime / 1000 );
+  //tft.setTextSize(2);
+  //tft.setTextColor(ILI9341_YELLOW, ILI9341_BLACK);
+  //tft.setCursor(190, 0);
+  //tft.print(dTime / 1000 );
   tft.setTextSize(3);
   tft.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
   tft.setCursor(0, 0);
@@ -256,7 +265,7 @@ void display()
   tft.setTextSize(4);
   tft.print("          ");
   tft.setCursor(0, line*7);
-  printStr(String(gps.speed*knotToMPH ),5,false); 
+  printStr(String(int(gps.speed*knotToMPH) ),5,false); 
   tft.setTextSize(3);
   printStr(" mph",4,true);
   tft.setCursor(0, line*9);
