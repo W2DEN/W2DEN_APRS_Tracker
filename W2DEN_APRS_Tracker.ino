@@ -47,10 +47,10 @@ int gpsSpeed;
 
 // Set your callsign and SSID here. Common values for the SSID are
 #define S_CALLSIGN      "W2DEN"
-#define S_CALLSIGN_ID   5   // 11 is usually for balloons
+#define S_CALLSIGN_ID   15   // 11 is usually for balloons
 // Destination callsign: APRS (with SSID=0) is usually okay.
 #define D_CALLSIGN      "APRS"
-#define D_CALLSIGN_ID   0
+#define D_CALLSIGN_ID   10
 // Symbol Table: '/' is primary table '\\' is secondary table. The Secondary tabe symbol is \ but must be escaped with the first \
 #define SYMBOL_TABLE '/'
 // Primary Table Symbols: /O=balloon, /-=House, /v=Blue Van, />=Red Car
