@@ -12,6 +12,7 @@
  *
  */
 #define thisver "1.01" ////////////////////////////////// VERSION
+// this is a dummy line
 #include <WProgram.h>
 // Note: this example uses my GPS library for the Adafruit Ultimate GPS
 // Code located here: https://github.com/rvnash/ultimate_gps_teensy3
